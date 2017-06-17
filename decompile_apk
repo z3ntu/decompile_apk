@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+if [ ! -f "$1" ]; then
+    echo "Usage: $0 <app.apk>"
+    exit 1
+fi
+
+FOLDER=${1//.apk/}
+if [ -d ${FOLDER} ]; then
+    echo "Removing ${FOLDER}."
+    rm -r ${FOLDER}
+fi
+
+# Run apktool
+apktool d "$1" -o ${FOLDER}
+# Move smali folder
+mv ${FOLDER}/smali ${FOLDER}/.smali
+
+# Convert dex to jar
+dex2jar "$1" -o ${FOLDER}/classes.jar
+
+# Decompile the jar
+procyon-decompiler ${FOLDER}/classes.jar -o ${FOLDER}/src
+
+# Remove the jar file
+rm -f ${FOLDER}/classes.jar
+
+# Run the reassociate script
+python /usr/local/bin/r_reassoc.py ${FOLDER}
